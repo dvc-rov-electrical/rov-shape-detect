@@ -2,13 +2,13 @@ import detect_shapes
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(4)
+cap = cv2.VideoCapture(4 - 4)
 
 while True:
 	print("\n\n========= REAL START =========\n\n")
 	frame = cap.read()[1]
 	processed_frame, counts = detect_shapes.find_shapes(frame, debug=True)
-	detect_shapes.draw_shape_counter(processed_frame, *counts)
+	# detect_shapes.draw_shape_counter(processed_frame, *counts)
 	cv2.imshow("frame", processed_frame)
 	print("\n\n========= REAL END =========\n\n")
 

@@ -6,8 +6,8 @@ bw_thresh_cutoff = 50
 min_area = 200
 max_area = 20000
 
-circle_max_cnt_length = 8
-triangle_length_thresh = 45 # pixels
+circle_max_cnt_length = 6
+triangle_length_thresh = 30 # pixels
 triangle_angle_thresh = 45 # degrees
 square_angle_thresh = 20 # degrees
 square_aspect_ratio_thresh = 2
@@ -42,11 +42,14 @@ def identify_shape(cnt):
     shape = "unidentified"
     perimeter = cv2.arcLength(cnt, True)
     approx_poly = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
-    print(len(cnt) >= circle_max_cnt_length)
-    print('num sides:', len(approx_poly))
+    # print(len(cnt) >= circle_max_cnt_length)
+    # print('num sides:', len(cnt), len(approx_poly))
+
+    if len(approx_poly) == 2:
+        shape = "rectangle"
 
     # if the shape is a triangle, it will have 3 vertices
-    if len(approx_poly) == 3:
+    elif len(approx_poly) == 3:
         # we want only roughly equilateral triangles, so we'll calculate the edge lengths,
         # get the biggest difference, and see if it's within a certain threshold
         tri_points = unwrap_contour(approx_poly)
@@ -55,27 +58,17 @@ def identify_shape(cnt):
         max_length_diff = np.max(edge_lengths) - np.min(edge_lengths)
         print('length:', max_length_diff)
 
-        angles = get_angles_of_shape(tri_points)
-        delta_angles = (angles - 120)
-        max_angle_diff = np.max(angles) - np.min(angles)
-        print('triangle angle:', max_angle_diff)
+        # angles = get_angles_of_shape(tri_points)
+        # delta_angles = (angles - 120)
+        # max_angle_diff = np.max(angles) - np.min(angles)
+        # print('triangle angle:', max_angle_diff)
 
-        if max_length_diff < triangle_length_thresh - 15:
+        if max_length_diff < triangle_length_thresh:
             shape = "triangle"
 
     # if the shape has 4 vertices, it is either a square or a rectangle
     elif len(approx_poly) == 4:
-        # compute the bounding box of the contour and use the
-        # bounding box to compute the aspect ratio
-        # (x, y, w, h) = cv2.boundingRect(approx)
         rect_points = unwrap_contour(approx_poly)
-
-        angles = get_angles_of_shape(rect_points)
-        delta_angles = np.abs(angles - 90)
-        max_angle_diff = np.max(delta_angles) - np.min(delta_angles)
-        print('square angle:', max_angle_diff)
-
-        # if max_angle_diff < square_angle_thresh:
 
         # Get nearest/farthest points from origin
         nearest_point = min(rect_points, key=np.linalg.norm)
@@ -100,13 +93,11 @@ def identify_shape(cnt):
         edges = get_edge_lengths_of_shape(rect_points)
         print('====================')
         print('%.2f %.2f' % (middle_near_dist_diff, middle_far_dist_diff), np.diff(np.sort(edges)))
-        print('====================')
-        # print(np.max(edges) - np.min(edges))
 
         shape = "square" if middle_near_dist_diff < square_aspect_ratio_thresh else "rectangle"
 
     # otherwise, we assume the shape is a circle
-    elif len(cnt) >= circle_max_cnt_length - 4:
+    elif len(cnt) >= circle_max_cnt_length:
         (x, y), r = cv2.minEnclosingCircle(cnt)
         x = int(x)
         y = int(y)
@@ -118,10 +109,8 @@ def identify_shape(cnt):
         angles = np.abs(angles - 360 / len(cnt))
         max_angle_diff = np.max(angles) - np.min(angles)
         print(max_angle_diff)
-        if max_angle_diff < 30:
-            for point in circle_points:
-                pass
-            shape = "circle"
+
+        shape = "circle"
 
     # return the name of the shape
     return shape, approx_poly
@@ -132,7 +121,7 @@ def find_blobs(image):
     params = cv2.SimpleBlobDetector_Params()
 
     params.minThreshold = 0
-    params.minRepeatability = 4 # higher number requires stabler blobs
+    params.minRepeatability = 4 # higher number yields stabler blobs
 
     max_min_repeatability = int((params.maxThreshold - params.minThreshold) / params.thresholdStep)
     if params.minRepeatability >= max_min_repeatability:
@@ -163,7 +152,7 @@ def clean_keypoints(keypoints):
     for keypoint in keypoints:
         cleaned_keypoints += [{
             'center': (np.int(keypoint.pt[0]), np.int(keypoint.pt[1])),
-            'size': np.int(keypoint.size),
+            'size': np.int(keypoint.size / 1.1),
             'lower': None,
             'upper': None
         }]
@@ -191,7 +180,6 @@ def keypoint_rect_bounds(keypoints, img_shape):
         keypoints[i]['upper'] = upper
 
     return keypoints
-
 
 def draw_found_blobs(image, keypoints):
     drawn_image = image.copy()
@@ -265,14 +253,17 @@ def find_shapes(image, debug=False):
         roi_image = gray[lowerY:upperY, lowerX:upperX]
         threshed_img = cv2.adaptiveThreshold(roi_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 39, 15)
 
-        shape_cnts = cv2.findContours(threshed_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        kernel = np.ones((3, 3), np.uint8)
+        eroded_img = cv2.erode(threshed_img, kernel)
+
+        shape_cnts = cv2.findContours(eroded_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
 
         if len(shape_cnts) > 0:
             shape_cnt = shape_cnts[0]
             convex_hull = cv2.convexHull(shape_cnt)
 
-            # # Remove contours that create invalid polygons (i.e. number of sides >= 3)
-            if len(convex_hull) < 3:
+            # # Remove contours that create invalid polygons
+            if len(convex_hull) < 1:
                 continue
 
             # compute the center of the contour, then detect the name of the shape using only the contour
@@ -289,7 +280,7 @@ def find_shapes(image, debug=False):
 
             shape_counts[shape] += 1
 
-            print('SHAPES FOUND:', shape)
+            print('SHAPE FOUND:', shape)
 
             cv2.drawContours(
                 image,
@@ -298,7 +289,6 @@ def find_shapes(image, debug=False):
                 (0, 255, 0),
                 2
             )
-
 
     drawn_image = imagify_keypoints(image, keypoints)
 
