@@ -1,17 +1,19 @@
 import cv2
 import numpy as np
 
-import detect_shapes
+from detect_shapes import find_shapes, draw_shape_counter
 
-text_pic_file = 'test/sample2.png'
+test_pic = 'test/sample2.png'
 
-img = cv2.imread(text_pic_file)
-processed_img, counts = detect_shapes.find_shapes(img, debug=True)
-detect_shapes.draw_shape_counter(processed_img, *counts)
+img = cv2.imread(test_pic)
+processed_img, counts = find_shapes(img, debug=True)
+draw_shape_counter(processed_img, *counts)
 
 while True:
-    cv2.imshow("processed image", processed_img)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
+    cv2.imshow("Shape Detection (Picture)", processed_img)
+
+    # Press ESC to quit
+    if cv2.waitKey(1) & 0xFF == 27:
         break
 
 cv2.destroyAllWindows()

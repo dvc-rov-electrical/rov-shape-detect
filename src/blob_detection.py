@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 
+from image_utils import combine_images_vertical
+
 # https://docs.opencv.org/2.4/modules/features2d/doc/common_interfaces_of_feature_detectors.html#simpleblobdetector
 def find_blobs(image):
     params = cv2.SimpleBlobDetector_Params()
@@ -37,7 +39,7 @@ def clean_keypoints(keypoints):
     for keypoint in keypoints:
         cleaned_keypoints += [{
             'center': (np.int(keypoint.pt[0]), np.int(keypoint.pt[1])),
-            'size': np.int(keypoint.size / 1.1),
+            'size': np.int(keypoint.size / 1.05),
             'lower': None,
             'upper': None
         }]
@@ -93,25 +95,3 @@ def imagify_keypoints(image, keypoints):
 
     blob_stack = np.concatenate((blob_imgs), axis=1) # horizontally combine the images
     return combine_images_vertical([image, blob_stack])
-
-def combine_images_vertical(images):
-    widths = []
-    max_height = 0
-
-    for img in images:
-        widths.append(img.shape[1])
-        max_height += img.shape[0]
-
-    w = np.max(widths)
-    h = max_height
-
-    # create a new array with a size large enough to contain all the images
-    final_image = np.zeros((h, w, 3), dtype=np.uint8)
-
-    current_y = 0  # keep track of where your current image was last placed in the y coordinate
-    for image in images:
-        # add an image to the final array and increment the y coordinate
-        final_image[current_y:current_y + image.shape[0], :image.shape[1], :] = image
-        current_y += image.shape[0]
-
-    return final_image

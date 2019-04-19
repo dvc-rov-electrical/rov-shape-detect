@@ -1,93 +1,93 @@
-# import the necessary packages
 import cv2
 import numpy as np
 
-from geometry_utils import unwrap_contour, get_angles_of_shape, get_edge_lengths_of_shape
-from blob_detection import find_blobs, draw_found_blobs, imagify_keypoints, combine_images_vertical
+from geometry_utils import unwrap_contour, edge_lengths_of_shape, perfect_circle_contour
+from blob_detection import find_blobs, imagify_keypoints
+from image_utils import combine_images_vertical
 
 min_area = 200
 max_area = 20000
 
+approx_polydp_error = 0.03
 circle_max_cnt_length = 6
 triangle_length_thresh = 30
-square_aspect_ratio_thresh = 2
+square_aspect_ratio_thresh = 1.5
+circle_dissimilarity_max = 1.2
+
 
 def identify_shape(cnt):
     # initialize the shape name and approximate the contour
     shape = "unidentified"
     perimeter = cv2.arcLength(cnt, True)
-    approx_poly = cv2.approxPolyDP(cnt, 0.03 * perimeter, True)
+    approx_poly = cv2.approxPolyDP(cnt, approx_polydp_error * perimeter, True)
 
+    # Consider lines as really flat rectangles
     if len(approx_poly) == 2:
         shape = "rectangle"
 
-    # if the shape is a triangle, it will have 3 vertices
+    # if the shape has 3 vertices, it is a triangle
     elif len(approx_poly) == 3:
-        # we want only roughly equilateral triangles, so we'll calculate the edge lengths,
-        # get the biggest difference, and see if it's within a certain threshold
+        # We want only roughly equilateral triangles, so we'll calculate the edge lengths,
+        # get the range of values, and see if it's within a certain threshold
         tri_points = unwrap_contour(approx_poly)
 
-        edge_lengths = get_edge_lengths_of_shape(tri_points)
-        max_length_diff = np.max(edge_lengths) - np.min(edge_lengths)
-        print('length:', max_length_diff)
+        edge_lengths = edge_lengths_of_shape(tri_points)
+        edge_length_range = np.max(edge_lengths) - np.min(edge_lengths)
+        print('edge length range (triangle):', edge_length_range)
 
-        if max_length_diff < triangle_length_thresh:
+        if edge_length_range <= triangle_length_thresh:
             shape = "triangle"
 
     # if the shape has 4 vertices, it is either a square or a rectangle
     elif len(approx_poly) == 4:
         rect_points = unwrap_contour(approx_poly)
+        distances = np.round([np.linalg.norm(point) for point in rect_points], 5)
+        min_dist_index = np.where(distances == min(distances))[0][0]
+        rotated_points = np.roll(rect_points, min_dist_index, axis=0)
 
         # Get nearest/farthest points from origin
-        nearest_point = min(rect_points, key=np.linalg.norm)
-        farthest_point = max(rect_points, key=np.linalg.norm)
-
-        middle_points = np.array([point for point in rect_points if not np.array_equal(point, nearest_point) and not np.array_equal(point, farthest_point)])
+        (nearest_point, middle_point1, farthest_point, middle_point2) = rotated_points
 
         # Get distances from nearest point to middle 2 points
-        middle_near_segments = [(nearest_point, mid_point) for mid_point in middle_points]
-        middle_near_distances = [np.linalg.norm(p1 - p2) for p1, p2 in middle_near_segments]
-        middle_near_dist_diff = middle_near_distances[0] / middle_near_distances[1]
-        if middle_near_dist_diff < 1:
-            middle_near_dist_diff = 1 / middle_near_dist_diff
+        midnear_segments = [(nearest_point, middle_point1), (nearest_point, middle_point2)]
+        midnear_distances = [np.linalg.norm(p1 - p2) for p1, p2 in midnear_segments]
+        midnear_dist_ratio = midnear_distances[0] / midnear_distances[1]
+        if midnear_dist_ratio < 1:
+            midnear_dist_ratio = 1 / midnear_dist_ratio
 
         # Get distances from farthest point to middle 2 points
-        middle_far_segments = [(farthest_point, mid_point) for mid_point in middle_points]
-        middle_far_distances = [np.linalg.norm(p1 - p2) for p1, p2 in middle_near_segments]
-        middle_far_dist_diff = middle_far_distances[0] / middle_far_distances[1]
-        if middle_far_dist_diff < 1:
-            middle_far_dist_diff = 1 / middle_far_dist_diff
+        midfar_segments = [(farthest_point, middle_point1), (farthest_point, middle_point2)]
+        midfar_distances = [np.linalg.norm(p1 - p2) for p1, p2 in midfar_segments]
+        midfar_dist_ratio = midfar_distances[0] / midfar_distances[1]
+        if midfar_dist_ratio < 1:
+            midfar_dist_ratio = 1 / midfar_dist_ratio
 
-        edges = get_edge_lengths_of_shape(rect_points)
-        print('====================')
-        print('%.2f %.2f' % (middle_near_dist_diff, middle_far_dist_diff), np.diff(np.sort(edges)))
+        print('%.2f %.2f' % (midnear_dist_ratio, midfar_dist_ratio))
+        ratio_diff = np.abs(midnear_dist_ratio / midfar_dist_ratio)
+        if ratio_diff < 1:
+            ratio_diff = 1 / ratio_diff
 
-        shape = "square" if middle_near_dist_diff < square_aspect_ratio_thresh else "rectangle"
+        if (ratio_diff < 1.5):
+            shape = "square" if midnear_dist_ratio < square_aspect_ratio_thresh and midfar_dist_ratio < square_aspect_ratio_thresh else "rectangle"
 
     # otherwise, we assume the shape is a circle
     elif len(cnt) >= circle_max_cnt_length:
         (x, y), r = cv2.minEnclosingCircle(cnt)
-        x = int(x)
-        y = int(y)
-        r = int(r)
 
+        perfect_circle_cnt = perfect_circle_contour(x, y, r, 45)
         circle_points = unwrap_contour(cnt)
 
-        angles = get_angles_of_shape(circle_points)
-        angles = np.abs(angles - 360 / len(cnt))
-        max_angle_diff = np.max(angles) - np.min(angles)
-        print(max_angle_diff)
+        circle_dissimilarity = cv2.matchShapes(perfect_circle_cnt, cnt, cv2.CONTOURS_MATCH_I1, 0)
+        print('dissimilar:', circle_dissimilarity)
 
-        shape = "circle"
+        if circle_dissimilarity <= circle_dissimilarity_max:
+            shape = "circle"
+        else:
+            shape = "rectangle"
 
-    # return the name of the shape
     return shape, approx_poly
 
 def find_shapes(image, debug=False):
-    size = image.shape
-    num_pixels = np.prod(image.shape[:2])
-
-    # convert the image to grayscale and threshold it
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     keypoints = find_blobs(image)
 
@@ -103,20 +103,16 @@ def find_shapes(image, debug=False):
         (upperX, upperY) = keypoint['upper']
 
         roi_image = gray[lowerY:upperY, lowerX:upperX]
-        threshed_img = cv2.adaptiveThreshold(roi_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY_INV, 39, 15)
+        threshed_img = cv2.threshold(roi_image, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
 
-        kernel = np.ones((3, 3), np.uint8)
-        eroded_img = cv2.erode(threshed_img, kernel)
+        # Find the shapes in the image and sort them from greatest area to least
+        shape_cnts = cv2.findContours(threshed_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
+        sorted_cnts = sorted(shape_cnts, key=cv2.contourArea, reverse=True)
 
-        shape_cnts = cv2.findContours(eroded_img.copy(), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)[0]
-
-        if len(shape_cnts) > 0:
-            shape_cnt = shape_cnts[0]
+        if len(sorted_cnts) > 0:
+            # There should be only one shape to detect within each ROI image
+            shape_cnt = sorted_cnts[0]
             convex_hull = cv2.convexHull(shape_cnt)
-
-            # # Remove contours that create invalid polygons
-            if len(convex_hull) < 1:
-                continue
 
             # compute the center of the contour, then detect the name of the shape using only the contour
             area = cv2.contourArea(convex_hull)
@@ -132,11 +128,9 @@ def find_shapes(image, debug=False):
 
             shape_counts[shape] += 1
 
-            print('SHAPE FOUND:', shape)
-
             cv2.drawContours(
                 image,
-                [convex_hull + keypoint['center'] - keypoint['size']],
+                [shape_hull + keypoint['center'] - keypoint['size']],
                 -1,
                 (0, 255, 0),
                 2
@@ -149,6 +143,7 @@ def find_shapes(image, debug=False):
 # Draws the number of found benthic species found on the lower right hand corner
 def draw_shape_counter(img, num_circles, num_triangles, num_lines, num_squares):
     text_options = (cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4, cv2.LINE_AA)
+
     # Draw circle counter
     cv2.circle(img, (img.shape[1] - 100, img.shape[0] - 200), 20, (0, 0, 255), -1)
     cv2.putText(img, str(num_circles), (img.shape[1] - 50, img.shape[0] - 180), *text_options)

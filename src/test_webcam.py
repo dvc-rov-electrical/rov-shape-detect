@@ -1,22 +1,25 @@
 import cv2
 import numpy as np
 
-import detect_shapes
+from detect_shapes import find_shapes, draw_shape_counter
 
-cap = cv2.VideoCapture(4 - 4)
+cap = cv2.VideoCapture(4 - 0)
 
 while True:
-	print("\n\n========= REAL START =========\n\n")
+	print("\n========= REAL START =========\n")
 	frame = cap.read()[1]
-	processed_frame, counts = detect_shapes.find_shapes(frame, debug=True)
-	# detect_shapes.draw_shape_counter(processed_frame, *counts)
-	cv2.imshow("frame", processed_frame)
-	print("\n\n========= REAL END =========\n\n")
+	processed_frame, counts = find_shapes(frame, debug=True)
+	draw_shape_counter(processed_frame, *counts)
+	cv2.imshow("Shape Detection", processed_frame)
+	print("\n========= REAL END =========\n")
 
-	if cv2.waitKey(1) & 0xFF == ord('q'):
+	# Press ESC to stop the webcam feed
+	if cv2.waitKey(1) & 0xFF == 27:
 	 	break
 
+# Release the webcam feed source
 cap.release()
 
-if cv2.waitKey(0) & 0xFF == ord('q'):
+# Press ESC to quit
+if cv2.waitKey(0) & 0xFF == 27:
 	cv2.destroyAllWindows()
