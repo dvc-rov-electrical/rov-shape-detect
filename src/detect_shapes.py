@@ -140,39 +140,68 @@ def find_shapes(image, debug=False):
     return drawn_image, list(shape_counts.values())
 
 # Draws the number of found benthic species found on the lower right hand corner
-def draw_shape_counter(img, num_circles, num_triangles, num_lines, num_squares):
+def draw_shape_counter(input_img, num_circles, num_triangles, num_lines, num_squares):
+    final_img = input_img.copy()
+
     pen_color = (0, 0, 255) # red
     text_options = (cv2.FONT_HERSHEY_SIMPLEX, 1.5, pen_color, 4, cv2.LINE_AA)
 
     # Draw circle counter
-    cv2.circle(img, (img.shape[1] - 100, img.shape[0] - 200), 20, pen_color, -1)
-    cv2.putText(img, str(num_circles), (img.shape[1] - 50, img.shape[0] - 180), *text_options)
+    cv2.circle(
+        final_img,
+        (final_img.shape[1] - 100, final_img.shape[0] - 200),
+        20, pen_color, -1)
+    cv2.putText(
+        final_img,
+        str(num_circles),
+        (final_img.shape[1] - 50, final_img.shape[0] - 180),
+        *text_options)
 
     # Draw triangle counter
     side_len = 40
-    offsetX = img.shape[1] - 120
-    offsetY = img.shape[0] - 170
+    offsetX = final_img.shape[1] - 120
+    offsetY = final_img.shape[0] - 170
 
     pt1 = (offsetX + side_len // 2	, offsetY)
     pt2 = (offsetX + 0				, offsetY + side_len)
     pt3 = (offsetX + side_len		, offsetY + side_len)
     triangle_cnt = np.array([pt1, pt2, pt3])
 
-    cv2.drawContours(img, [triangle_cnt], 0, pen_color, -1)
-    cv2.putText(img, str(num_triangles), (img.shape[1] - 50, img.shape[0] - 130), *text_options)
+    cv2.drawContours(final_img, [triangle_cnt], 0, pen_color, -1)
+    cv2.putText(
+        final_img,
+        str(num_triangles),
+        (final_img.shape[1] - 50, final_img.shape[0] - 130),
+        *text_options)
 
     # Draw line counter
-    cv2.line(img, (img.shape[1] - 120, img.shape[0] - 95), (img.shape[1] - 80, img.shape[0] - 95), pen_color, 6)
-    cv2.putText(img, str(num_lines), (img.shape[1] - 50, img.shape[0] - 80), *text_options)
+    cv2.line(
+        final_img,
+        (final_img.shape[1] - 120, final_img.shape[0] - 95),
+        (final_img.shape[1] - 80, final_img.shape[0] - 95),
+        pen_color, 6)
+    cv2.putText(
+        final_img,
+        str(num_lines),
+        (final_img.shape[1] - 50, final_img.shape[0] - 80),
+        *text_options)
 
     # Draw square counter
-    (originX, originY) = (img.shape[1] - 120, img.shape[0] - 60)
+    (originX, originY) = (final_img.shape[1] - 120, final_img.shape[0] - 60)
     side_length = 40
 
     top_left_coord = (originX, originY)
     bottom_right_coord = (originX + side_length, originY + side_length)
 
-    cv2.rectangle(img, top_left_coord, bottom_right_coord, pen_color, -1)
-    cv2.putText(img, str(num_squares), (img.shape[1] - 50, img.shape[0] - 30), *text_options)
+    cv2.rectangle(
+        final_img,
+        top_left_coord,
+        bottom_right_coord,
+        pen_color, -1)
+    cv2.putText(
+        final_img,
+        str(num_squares),
+        (final_img.shape[1] - 50, final_img.shape[0] - 30),
+        *text_options)
 
-    return img
+    return final_img

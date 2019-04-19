@@ -15,8 +15,8 @@ while True:
 	print("\n========= START =========\n")
 	frame = cap.read()[1]
 	processed_frame, counts = find_shapes(frame, debug=True)
-	draw_shape_counter(processed_frame, *counts)
-	cv2.imshow("Shape Detection (Webcam)", processed_frame)
+	final_frame = draw_shape_counter(processed_frame, *counts)
+	cv2.imshow("Shape Detection (Webcam)", final_frame)
 	print("\n========= END =========\n")
 
 	# Press ESC to stop the webcam feed
