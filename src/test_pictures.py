@@ -1,6 +1,7 @@
-import detect_shapes
 import cv2
 import numpy as np
+
+import detect_shapes
 
 text_pic_file = 'test/sample2.png'
 

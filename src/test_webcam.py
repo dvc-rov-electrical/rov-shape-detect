@@ -1,6 +1,7 @@
-import detect_shapes
 import cv2
 import numpy as np
+
+import detect_shapes
 
 cap = cv2.VideoCapture(4 - 4)
 
