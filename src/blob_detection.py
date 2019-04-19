@@ -19,7 +19,7 @@ def find_blobs(image):
 
     params.filterByArea = True
     params.minArea = 200
-    params.maxArea = 18000
+    params.maxArea = 20000
 
     params.filterByCircularity = False
     params.filterByInertia = False

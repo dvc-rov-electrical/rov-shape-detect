@@ -14,7 +14,6 @@ triangle_length_thresh = 30
 square_aspect_ratio_thresh = 1.5
 circle_dissimilarity_max = 1.2
 
-
 def identify_shape(cnt):
     # initialize the shape name and approximate the contour
     shape = "unidentified"
@@ -142,10 +141,11 @@ def find_shapes(image, debug=False):
 
 # Draws the number of found benthic species found on the lower right hand corner
 def draw_shape_counter(img, num_circles, num_triangles, num_lines, num_squares):
-    text_options = (cv2.FONT_HERSHEY_SIMPLEX, 1.5, (0, 0, 255), 4, cv2.LINE_AA)
+    pen_color = (0, 0, 255) # red
+    text_options = (cv2.FONT_HERSHEY_SIMPLEX, 1.5, pen_color, 4, cv2.LINE_AA)
 
     # Draw circle counter
-    cv2.circle(img, (img.shape[1] - 100, img.shape[0] - 200), 20, (0, 0, 255), -1)
+    cv2.circle(img, (img.shape[1] - 100, img.shape[0] - 200), 20, pen_color, -1)
     cv2.putText(img, str(num_circles), (img.shape[1] - 50, img.shape[0] - 180), *text_options)
 
     # Draw triangle counter
@@ -158,11 +158,11 @@ def draw_shape_counter(img, num_circles, num_triangles, num_lines, num_squares):
     pt3 = (offsetX + side_len		, offsetY + side_len)
     triangle_cnt = np.array([pt1, pt2, pt3])
 
-    cv2.drawContours(img, [triangle_cnt], 0, (0, 0, 255), -1)
+    cv2.drawContours(img, [triangle_cnt], 0, pen_color, -1)
     cv2.putText(img, str(num_triangles), (img.shape[1] - 50, img.shape[0] - 130), *text_options)
 
     # Draw line counter
-    cv2.line(img, (img.shape[1] - 120, img.shape[0] - 95), (img.shape[1] - 80, img.shape[0] - 95), (0, 0, 255), 6)
+    cv2.line(img, (img.shape[1] - 120, img.shape[0] - 95), (img.shape[1] - 80, img.shape[0] - 95), pen_color, 6)
     cv2.putText(img, str(num_lines), (img.shape[1] - 50, img.shape[0] - 80), *text_options)
 
     # Draw square counter
@@ -172,7 +172,7 @@ def draw_shape_counter(img, num_circles, num_triangles, num_lines, num_squares):
     top_left_coord = (originX, originY)
     bottom_right_coord = (originX + side_length, originY + side_length)
 
-    cv2.rectangle(img, top_left_coord, bottom_right_coord, (0, 0, 255), -1)
+    cv2.rectangle(img, top_left_coord, bottom_right_coord, pen_color, -1)
     cv2.putText(img, str(num_squares), (img.shape[1] - 50, img.shape[0] - 30), *text_options)
 
     return img
