@@ -2,15 +2,20 @@ import detect_shapes
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(0+1)
+cap = cv2.VideoCapture(4)
 
 while True:
-	ret, frame = cap.read()
-	#frame = cv2.imread('shapes_and_colors.png')
-	newframe = detect_shapes.find_shape(frame)
-	cv2.imshow("frame", newframe)
+	print("\n\n========= REAL START =========\n\n")
+	frame = cap.read()[1]
+	processed_frame, counts = detect_shapes.find_shapes(frame, debug=True)
+	detect_shapes.draw_shape_counter(processed_frame, *counts)
+	cv2.imshow("frame", processed_frame)
+	print("\n\n========= REAL END =========\n\n")
+
 	if cv2.waitKey(1) & 0xFF == ord('q'):
 	 	break
 
 cap.release()
-cv2.destroyAllWindows()
+
+if cv2.waitKey(0) & 0xFF == ord('q'):
+	cv2.destroyAllWindows()
