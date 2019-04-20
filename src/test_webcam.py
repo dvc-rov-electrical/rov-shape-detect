@@ -12,12 +12,13 @@ except:
 cap = cv2.VideoCapture(port_num)
 
 while True:
-	print("\n========= START =========\n")
 	frame = cap.read()[1]
-	processed_frame, counts = find_shapes(frame, debug=True)
+
+	# Process the image frame and draw the shape counter
+	processed_frame, counts = find_shapes(frame)
 	final_frame = draw_shape_counter(processed_frame, *counts)
+
 	cv2.imshow("Shape Detection (Webcam)", final_frame)
-	print("\n========= END =========\n")
 
 	# Press ESC to stop the webcam feed
 	if cv2.waitKey(1) & 0xFF == ord('q'):

@@ -10,7 +10,9 @@ except:
     test_pic = 'test/sample_complex.png'
 
 img = cv2.imread(test_pic)
-processed_img, counts = find_shapes(img, debug=True)
+
+# Process the image frame and draw the shape counter
+processed_img, counts = find_shapes(img)
 final_img = draw_shape_counter(processed_img, *counts)
 
 while True:
