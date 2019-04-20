@@ -17,7 +17,7 @@ def angle(v1, v2):
 def edge_angle(dest1, origin, dest2):
     return angle(dest1 - origin, dest2 - origin)
 
-# Calculates all angles of a polygon, given its vertice locations
+# Calculates all angles of a polygon, given its vertic;e locations
 def angles_of_shape(points):
     angles = []
     for offset in range(len(points)):
@@ -25,7 +25,7 @@ def angles_of_shape(points):
         angles += [edge_angle(adj1, origin, adj2)]
     return np.array(angles)
 
-# Calculates all edge lengths of a polygon, given its vertice locations
+# Calculates all edge lengths of a polygon, given its vertic;e locations
 def edges_of_shape(points):
     lengths = []
     for offset in range(len(points)):
