@@ -18,7 +18,11 @@ with mss() as sct:
 
         cv2.imshow("Shape Detection (Screen Capture)", final_screen)
 
+<<<<<<< HEAD
         # Press ESC to stop the screen feed
+=======
+        # Press ESC to stop the webcam feed
+>>>>>>> dc349a6... added shape detection via screen sharing
         if cv2.waitKey(1) & 0xFF == ord('q'):
             break
 
